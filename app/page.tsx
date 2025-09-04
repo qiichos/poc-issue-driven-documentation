@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import CommentModal from "@/components/CommentModal";
 import DocumentEditor from "@/components/DocumentEditor";
 import DocumentList from "@/components/DocumentList";
 import Sidebar from "@/components/Sidebar";
+import React, { useEffect, useState } from "react";
 
 export type Comment = {
 	id: string;
@@ -144,7 +144,9 @@ export default function Home() {
 		<div className="min-h-screen bg-gray-50">
 			<header className="bg-white border-b border-gray-200 px-4 py-3">
 				<h1 className="text-xl font-semibold text-gray-900">
-					{currentDocument ? currentDocument.title : "Editor PoC"}
+					{currentDocument
+						? currentDocument.title
+						: "poc-issue-driven-documentation"}
 				</h1>
 			</header>
 
@@ -170,7 +172,9 @@ export default function Home() {
 						/>
 					) : (
 						<div className="flex items-center justify-center h-full text-gray-500">
-							{isLoadingDocument ? "Loading document..." : "Select a document to start editing"}
+							{isLoadingDocument
+								? "Loading document..."
+								: "Select a document to start editing"}
 						</div>
 					)}
 				</div>

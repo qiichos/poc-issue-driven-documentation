@@ -1,5 +1,6 @@
 "use client";
 
+import type { Comment } from "@/app/page";
 import { Extension } from "@tiptap/core";
 import BulletList from "@tiptap/extension-bullet-list";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -16,7 +17,6 @@ import typescript from "highlight.js/lib/languages/typescript";
 import { createLowlight } from "lowlight";
 import React from "react";
 import { Markdown } from "tiptap-markdown";
-import type { Comment } from "@/app/page";
 import BubbleComment from "./BubbleComment";
 
 interface DocumentEditorProps {
@@ -72,7 +72,9 @@ export default function DocumentEditor({
 }: DocumentEditorProps) {
 	const [isPushing, setIsPushing] = React.useState(false);
 	const [pushMessage, setPushMessage] = React.useState("");
-	const [pushStatus, setPushStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+	const [pushStatus, setPushStatus] = React.useState<
+		"idle" | "success" | "error"
+	>("idle");
 	const editor = useEditor(
 		{
 			extensions: [
@@ -116,7 +118,12 @@ export default function DocumentEditor({
 			},
 			onUpdate: ({ editor }) => {
 				// Use HTML as fallback if markdown storage is not available
-				const markdownContent = (editor.storage as any).markdown?.getMarkdown() || editor.getHTML();
+				const markdownContent =
+					(
+						editor.storage as unknown as {
+							markdown?: { getMarkdown: () => string };
+						}
+					).markdown?.getMarkdown() || editor.getHTML();
 				onContentChange(markdownContent);
 			},
 		},
@@ -154,26 +161,32 @@ export default function DocumentEditor({
 		}
 	}, [editor, comments, addHighlight]);
 
-	// Set initial content when editor is created
+	// Set content when editor or content changes; skip if same
 	React.useEffect(() => {
-		if (editor && content) {
-			editor.commands.setContent(content);
-		}
-	}, [editor]); // Only run when editor is created
+		if (!editor || !content) return;
+		const current =
+			(
+				editor.storage as unknown as {
+					markdown?: { getMarkdown: () => string };
+				}
+			).markdown?.getMarkdown() || editor.getHTML();
+		if (current === content) return;
+		editor.commands.setContent(content);
+	}, [editor, content]);
 
 	const handlePushToGitHub = async () => {
 		if (isPushing) return;
 
 		setIsPushing(true);
-		setPushStatus('idle');
+		setPushStatus("idle");
 
 		try {
-			const commitMessage = `Update ${documentSlug || 'document'}: ${new Date().toISOString()}`;
-			
-			const response = await fetch('/api/git/push', {
-				method: 'POST',
+			const commitMessage = `Update ${documentSlug || "document"}: ${new Date().toISOString()}`;
+
+			const response = await fetch("/api/git/push", {
+				method: "POST",
 				headers: {
-					'Content-Type': 'application/json',
+					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
 					message: commitMessage,
@@ -184,26 +197,26 @@ export default function DocumentEditor({
 
 			if (response.ok) {
 				if (result.skipped) {
-					setPushMessage('No changes to push');
-					setPushStatus('idle');
+					setPushMessage("No changes to push");
+					setPushStatus("idle");
 				} else {
-					setPushMessage('Successfully pushed to GitHub!');
-					setPushStatus('success');
+					setPushMessage("Successfully pushed to GitHub!");
+					setPushStatus("success");
 				}
 			} else {
-				setPushMessage(result.error || 'Failed to push changes');
-				setPushStatus('error');
+				setPushMessage(result.error || "Failed to push changes");
+				setPushStatus("error");
 			}
 		} catch (error) {
-			console.error('Push error:', error);
-			setPushMessage('Network error occurred');
-			setPushStatus('error');
+			console.error("Push error:", error);
+			setPushMessage("Network error occurred");
+			setPushStatus("error");
 		} finally {
 			setIsPushing(false);
 			// Clear message after 3 seconds
 			setTimeout(() => {
-				setPushMessage('');
-				setPushStatus('idle');
+				setPushMessage("");
+				setPushStatus("idle");
 			}, 3000);
 		}
 	};
@@ -219,11 +232,11 @@ export default function DocumentEditor({
 				{pushMessage && (
 					<div
 						className={`px-3 py-1 rounded-md text-sm ${
-							pushStatus === 'success'
-								? 'bg-green-100 text-green-800'
-								: pushStatus === 'error'
-								? 'bg-red-100 text-red-800'
-								: 'bg-gray-100 text-gray-800'
+							pushStatus === "success"
+								? "bg-green-100 text-green-800"
+								: pushStatus === "error"
+									? "bg-red-100 text-red-800"
+									: "bg-gray-100 text-gray-800"
 						}`}
 					>
 						{pushMessage}
@@ -235,14 +248,14 @@ export default function DocumentEditor({
 					disabled={isPushing}
 					className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
 						isPushing
-							? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-							: 'bg-blue-600 hover:bg-blue-700 text-white'
+							? "bg-gray-300 text-gray-500 cursor-not-allowed"
+							: "bg-blue-600 hover:bg-blue-700 text-white"
 					}`}
 				>
-					{isPushing ? 'Pushing...' : 'Push to GitHub'}
+					{isPushing ? "更新中..." : "更新"}
 				</button>
 			</div>
-			
+
 			<EditorContent editor={editor} />
 			<BubbleComment editor={editor} onCommentClick={handleCommentClick} />
 		</div>
