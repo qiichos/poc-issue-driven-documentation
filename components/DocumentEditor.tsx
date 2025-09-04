@@ -24,6 +24,7 @@ interface DocumentEditorProps {
 	comments: Comment[];
 	onContentChange: (content: string) => void;
 	onCommentClick: (from: number, to: number, text: string) => void;
+	documentSlug?: string;
 }
 
 const HighlightExtension = Extension.create({
@@ -67,7 +68,11 @@ export default function DocumentEditor({
 	comments,
 	onContentChange,
 	onCommentClick,
+	documentSlug,
 }: DocumentEditorProps) {
+	const [isPushing, setIsPushing] = React.useState(false);
+	const [pushMessage, setPushMessage] = React.useState("");
+	const [pushStatus, setPushStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
 	const editor = useEditor(
 		{
 			extensions: [
@@ -156,12 +161,88 @@ export default function DocumentEditor({
 		}
 	}, [editor]); // Only run when editor is created
 
+	const handlePushToGitHub = async () => {
+		if (isPushing) return;
+
+		setIsPushing(true);
+		setPushStatus('idle');
+
+		try {
+			const commitMessage = `Update ${documentSlug || 'document'}: ${new Date().toISOString()}`;
+			
+			const response = await fetch('/api/git/push', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					message: commitMessage,
+				}),
+			});
+
+			const result = await response.json();
+
+			if (response.ok) {
+				if (result.skipped) {
+					setPushMessage('No changes to push');
+					setPushStatus('idle');
+				} else {
+					setPushMessage('Successfully pushed to GitHub!');
+					setPushStatus('success');
+				}
+			} else {
+				setPushMessage(result.error || 'Failed to push changes');
+				setPushStatus('error');
+			}
+		} catch (error) {
+			console.error('Push error:', error);
+			setPushMessage('Network error occurred');
+			setPushStatus('error');
+		} finally {
+			setIsPushing(false);
+			// Clear message after 3 seconds
+			setTimeout(() => {
+				setPushMessage('');
+				setPushStatus('idle');
+			}, 3000);
+		}
+	};
+
 	if (!editor) {
 		return null;
 	}
 
 	return (
 		<div className="relative flex-1">
+			{/* Push to GitHub Button */}
+			<div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+				{pushMessage && (
+					<div
+						className={`px-3 py-1 rounded-md text-sm ${
+							pushStatus === 'success'
+								? 'bg-green-100 text-green-800'
+								: pushStatus === 'error'
+								? 'bg-red-100 text-red-800'
+								: 'bg-gray-100 text-gray-800'
+						}`}
+					>
+						{pushMessage}
+					</div>
+				)}
+				<button
+					type="button"
+					onClick={handlePushToGitHub}
+					disabled={isPushing}
+					className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+						isPushing
+							? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+							: 'bg-blue-600 hover:bg-blue-700 text-white'
+					}`}
+				>
+					{isPushing ? 'Pushing...' : 'Push to GitHub'}
+				</button>
+			</div>
+			
 			<EditorContent editor={editor} />
 			<BubbleComment editor={editor} onCommentClick={handleCommentClick} />
 		</div>

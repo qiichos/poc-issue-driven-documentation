@@ -1,10 +1,10 @@
 # API Reference
 
-This document contains the API reference for our system.
+This document contains the API reference for our system
 
-## Authenticationa
+## Authentication
 
-All API calls require authentication using GitHub tokenssss
+All API calls require authentication using GitHub tokens
 
 ### Headers
 

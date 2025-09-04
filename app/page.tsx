@@ -161,6 +161,7 @@ export default function Home() {
 							key={selectedDocument} // Force re-create editor when document changes
 							content={documentContent}
 							comments={comments}
+							documentSlug={selectedDocument || undefined}
 							onContentChange={handleContentChange}
 							onCommentClick={(from, to, text) => {
 								setSelectedText({ from, to, text });
